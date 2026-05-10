@@ -1,0 +1,852 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>VoxLedger — Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --ink:       #0a0e17;
+  --ink-soft:  #111827;
+  --teal:      #00c9b1;
+  --teal-dim:  #00a898;
+  --teal-glow: rgba(0,201,177,0.18);
+  --amber:     #f59e0b;
+  --amber-glow:rgba(245,158,11,0.15);
+  --slate:     #1e2535;
+  --slate-hi:  #3b4a66;
+  --text:      #e2e8f0;
+  --muted:     #7a8ba6;
+  --dim:       #4b5a72;
+  --border:    rgba(255,255,255,0.07);
+  --red:       #f87171;
+  --green:     #34d399;
+  --font:      'Syne', sans-serif;
+  --mono:      'JetBrains Mono', monospace;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  background: var(--ink);
+  color: var(--text);
+  font-family: var(--font);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── TOPBAR ── */
+.topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 28px; height: 60px;
+  background: rgba(10,14,23,0.9);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  position: sticky; top: 0; z-index: 50;
+}
+.topbar-logo {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 1.1rem; font-weight: 800; letter-spacing: -0.02em; color: var(--text);
+  text-decoration: none;
+}
+.logo-dot {
+  width: 9px; height: 9px; border-radius: 50%;
+  background: var(--teal); box-shadow: 0 0 10px var(--teal);
+  animation: blink 2s ease-in-out infinite;
+}
+@keyframes blink { 0%,100%{opacity:1}50%{opacity:0.4} }
+.topbar-right { display: flex; align-items: center; gap: 14px; }
+.status-pill {
+  display: flex; align-items: center; gap: 7px;
+  border: 1px solid var(--border); border-radius: 100px;
+  padding: 5px 14px; font-size: 0.72rem; font-weight: 600;
+  color: var(--muted); letter-spacing: 0.04em;
+  font-family: var(--mono);
+}
+.status-pill.active { border-color: rgba(0,201,177,0.35); color: var(--teal); }
+.status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--dim); }
+.status-pill.active .status-dot {
+  background: var(--teal);
+  animation: blink 1.2s ease-in-out infinite;
+}
+.network-tag {
+  font-size: 0.7rem; font-family: var(--mono);
+  color: var(--amber); font-weight: 600;
+  background: var(--amber-glow); border: 1px solid rgba(245,158,11,0.25);
+  padding: 4px 10px; border-radius: 4px;
+}
+
+/* ── LAYOUT ── */
+.app-shell {
+  flex: 1; display: grid;
+  grid-template-columns: 300px 1fr;
+  grid-template-rows: auto 1fr;
+  gap: 0;
+}
+
+/* ── LEFT PANEL (MIC + SUMMARY) ── */
+.left-panel {
+  border-right: 1px solid var(--border);
+  display: flex; flex-direction: column; gap: 0;
+  background: var(--ink-soft);
+}
+
+/* Voice Widget */
+.voice-section {
+  padding: 28px 24px;
+  border-bottom: 1px solid var(--border);
+  display: flex; flex-direction: column; align-items: center;
+  gap: 20px;
+}
+.voice-label {
+  font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.12em;
+  color: var(--muted); font-weight: 700; align-self: flex-start;
+}
+.mic-ring-wrap {
+  position: relative; display: flex; align-items: center; justify-content: center;
+  width: 120px; height: 120px;
+}
+.mic-ring {
+  position: absolute; border-radius: 50%;
+  border: 1.5px solid rgba(0,201,177,0.2);
+  animation: ring-expand 2.4s ease-out infinite;
+  opacity: 0;
+}
+.mic-ring:nth-child(1) { width: 120px; height: 120px; animation-delay: 0s; }
+.mic-ring:nth-child(2) { width: 100px; height: 100px; animation-delay: 0.6s; }
+.mic-ring:nth-child(3) { width: 80px;  height: 80px;  animation-delay: 1.2s; }
+@keyframes ring-expand {
+  0%   { opacity: 0.5; transform: scale(0.85); }
+  100% { opacity: 0;   transform: scale(1.25); }
+}
+.mic-ring.listening {
+  border-color: rgba(0,201,177,0.5);
+  animation-duration: 1s;
+}
+.mic-btn {
+  width: 72px; height: 72px; border-radius: 50%;
+  background: var(--slate);
+  border: 2px solid var(--slate-hi);
+  cursor: pointer; position: relative; z-index: 2;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.6rem;
+  transition: background .2s, border-color .2s, transform .15s, box-shadow .2s;
+  -webkit-tap-highlight-color: transparent;
+}
+.mic-btn:hover {
+  border-color: var(--teal); background: rgba(0,201,177,0.1);
+  box-shadow: 0 0 24px var(--teal-glow);
+  transform: scale(1.05);
+}
+.mic-btn.listening {
+  background: var(--teal); border-color: var(--teal);
+  box-shadow: 0 0 32px rgba(0,201,177,0.5);
+  animation: mic-pulse 1s ease-in-out infinite;
+}
+.mic-btn.listening:hover { transform: none; }
+@keyframes mic-pulse {
+  0%,100% { box-shadow: 0 0 24px rgba(0,201,177,0.4); }
+  50%      { box-shadow: 0 0 48px rgba(0,201,177,0.7); }
+}
+.mic-btn.processing {
+  background: var(--amber-glow); border-color: var(--amber);
+  box-shadow: 0 0 24px rgba(245,158,11,0.3);
+}
+.voice-status {
+  font-size: 0.82rem; color: var(--muted); font-weight: 600;
+  letter-spacing: 0.03em; text-align: center; min-height: 20px;
+  transition: color .3s;
+}
+.voice-status.listening { color: var(--teal); }
+.voice-status.processing { color: var(--amber); }
+.voice-status.success { color: var(--green); }
+.voice-status.error { color: var(--red); }
+
+/* Transcript box */
+.transcript-box {
+  width: 100%; background: var(--ink); border: 1px solid var(--border);
+  border-radius: 8px; padding: 12px 14px; min-height: 54px;
+  font-size: 0.8rem; color: var(--muted); font-family: var(--mono);
+  line-height: 1.6; transition: border-color .3s;
+}
+.transcript-box.active { border-color: rgba(0,201,177,0.3); color: var(--text); }
+
+/* Quick-log form (manual fallback) */
+.manual-section {
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border);
+}
+.manual-label {
+  font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.12em;
+  color: var(--muted); font-weight: 700; margin-bottom: 12px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.manual-label span { color: var(--dim); font-weight: 500; font-family: var(--mono); font-size: 0.65rem; text-transform: none; letter-spacing: 0; }
+.form-row { display: flex; gap: 8px; margin-bottom: 8px; }
+.form-input, .form-select {
+  flex: 1; background: var(--ink); border: 1px solid var(--slate-hi);
+  border-radius: 6px; padding: 9px 12px;
+  font-family: var(--font); font-size: 0.8rem; color: var(--text);
+  outline: none; transition: border-color .2s;
+  -webkit-appearance: none;
+}
+.form-input:focus, .form-select:focus { border-color: var(--teal); }
+.form-input::placeholder { color: var(--dim); }
+.form-select option { background: var(--slate); }
+.form-submit {
+  width: 100%; padding: 10px;
+  background: var(--teal); color: var(--ink);
+  border: none; border-radius: 6px; cursor: pointer;
+  font-family: var(--font); font-size: 0.85rem; font-weight: 700;
+  transition: background .2s, transform .15s;
+  margin-top: 4px;
+}
+.form-submit:hover { background: var(--teal-dim); transform: translateY(-1px); }
+.form-submit:disabled { background: var(--slate-hi); color: var(--dim); cursor: not-allowed; transform: none; }
+
+/* Summary Cards */
+.summary-section { padding: 20px 24px; flex: 1; }
+.summary-label {
+  font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.12em;
+  color: var(--muted); font-weight: 700; margin-bottom: 14px;
+}
+.summary-cards { display: flex; flex-direction: column; gap: 10px; }
+.summary-card {
+  background: var(--ink); border: 1px solid var(--border);
+  border-radius: 10px; padding: 16px 18px;
+  transition: border-color .2s;
+}
+.summary-card:hover { border-color: rgba(0,201,177,0.2); }
+.summary-card-key {
+  font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.1em;
+  color: var(--muted); font-weight: 600; margin-bottom: 6px;
+}
+.summary-card-val {
+  font-size: 1.5rem; font-weight: 800; letter-spacing: -0.03em;
+  line-height: 1;
+}
+.summary-card-val.teal { color: var(--teal); }
+.summary-card-val.amber { color: var(--amber); }
+.summary-card-sub {
+  font-size: 0.72rem; color: var(--dim); margin-top: 4px;
+  font-family: var(--mono);
+}
+
+/* Category bar */
+.cat-bars { margin-top: 14px; display: flex; flex-direction: column; gap: 8px; }
+.cat-bar-row { display: flex; flex-direction: column; gap: 4px; }
+.cat-bar-meta { display: flex; justify-content: space-between; font-size: 0.72rem; }
+.cat-bar-name { color: var(--muted); }
+.cat-bar-amt  { color: var(--text); font-family: var(--mono); font-weight: 600; }
+.cat-bar-track {
+  height: 4px; background: var(--slate); border-radius: 2px; overflow: hidden;
+}
+.cat-bar-fill {
+  height: 100%; border-radius: 2px;
+  background: linear-gradient(90deg, var(--teal), var(--teal-dim));
+  transition: width .6s cubic-bezier(.4,0,.2,1);
+}
+
+/* ── RIGHT PANEL (TABLE) ── */
+.right-panel { display: flex; flex-direction: column; overflow: hidden; }
+
+.table-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 20px 28px 16px;
+  border-bottom: 1px solid var(--border);
+  gap: 12px; flex-wrap: wrap;
+}
+.table-title { font-size: 1rem; font-weight: 700; }
+.table-meta { font-size: 0.78rem; color: var(--muted); font-family: var(--mono); }
+.table-actions { display: flex; gap: 8px; align-items: center; }
+.filter-select {
+  background: var(--ink-soft); border: 1px solid var(--slate-hi);
+  border-radius: 6px; padding: 7px 12px;
+  font-family: var(--font); font-size: 0.78rem; color: var(--muted);
+  outline: none; cursor: pointer; transition: border-color .2s;
+}
+.filter-select:focus { border-color: var(--teal); color: var(--text); }
+.clear-btn {
+  background: transparent; border: 1px solid var(--slate-hi);
+  border-radius: 6px; padding: 7px 14px;
+  font-family: var(--font); font-size: 0.78rem; color: var(--muted);
+  cursor: pointer; transition: border-color .2s, color .2s;
+}
+.clear-btn:hover { border-color: var(--red); color: var(--red); }
+
+/* Expense Table */
+.table-wrap { flex: 1; overflow-y: auto; padding: 0 0 24px; }
+table { width: 100%; border-collapse: collapse; }
+thead th {
+  padding: 10px 20px 10px 28px;
+  text-align: left; font-size: 0.68rem;
+  text-transform: uppercase; letter-spacing: 0.1em;
+  color: var(--dim); font-weight: 700;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap; position: sticky; top: 0;
+  background: var(--ink);
+}
+thead th:last-child { padding-right: 28px; text-align: right; }
+tbody tr {
+  border-bottom: 1px solid var(--border);
+  transition: background .15s;
+  animation: row-in .3s ease both;
+}
+@keyframes row-in {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+tbody tr:hover { background: rgba(255,255,255,0.02); }
+td {
+  padding: 14px 20px 14px 28px;
+  font-size: 0.85rem; vertical-align: middle;
+}
+td:last-child { padding-right: 28px; text-align: right; }
+.td-date { font-family: var(--mono); font-size: 0.78rem; color: var(--muted); }
+.td-category { display: inline-flex; }
+.cat-badge {
+  font-size: 0.7rem; font-weight: 700; padding: 3px 10px;
+  border-radius: 4px; letter-spacing: 0.04em;
+}
+.cat-marketing  { background: rgba(0,201,177,0.12);  color: var(--teal);  border: 1px solid rgba(0,201,177,0.25); }
+.cat-transport  { background: rgba(245,158,11,0.12); color: var(--amber); border: 1px solid rgba(245,158,11,0.25); }
+.cat-food       { background: rgba(248,113,113,0.12);color: var(--red);   border: 1px solid rgba(248,113,113,0.25); }
+.cat-software   { background: rgba(129,140,248,0.12);color: #a5b4fc;      border: 1px solid rgba(129,140,248,0.25); }
+.cat-hardware   { background: rgba(52,211,153,0.12); color: var(--green); border: 1px solid rgba(52,211,153,0.25); }
+.cat-other      { background: rgba(148,163,184,0.1); color: #94a3b8;      border: 1px solid rgba(148,163,184,0.2); }
+.td-desc { color: var(--text); max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.td-amount { font-family: var(--mono); font-weight: 700; color: var(--text); }
+.td-proof a {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-family: var(--mono); font-size: 0.72rem;
+  color: var(--teal); text-decoration: none; font-weight: 600;
+  padding: 4px 10px; border-radius: 5px;
+  border: 1px solid rgba(0,201,177,0.2);
+  background: var(--teal-glow);
+  transition: background .2s, border-color .2s;
+  white-space: nowrap;
+}
+.td-proof a:hover { background: rgba(0,201,177,0.25); border-color: rgba(0,201,177,0.4); }
+
+/* Empty state */
+.empty-state {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 12px; padding: 80px 24px; color: var(--dim);
+  text-align: center;
+}
+.empty-icon { font-size: 2.5rem; opacity: 0.4; }
+.empty-text { font-size: 0.9rem; line-height: 1.6; }
+.empty-hint { font-size: 0.78rem; color: var(--slate-hi); font-family: var(--mono); }
+
+/* Toast */
+.toast-wrap {
+  position: fixed; bottom: 24px; right: 24px; z-index: 200;
+  display: flex; flex-direction: column; gap: 10px; pointer-events: none;
+}
+.toast {
+  background: var(--slate); border: 1px solid var(--border);
+  border-radius: 10px; padding: 14px 18px;
+  font-size: 0.82rem; max-width: 320px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  animation: toast-in .3s ease both;
+  pointer-events: auto;
+  display: flex; align-items: flex-start; gap: 10px;
+}
+.toast.success { border-color: rgba(52,211,153,0.35); }
+.toast.error   { border-color: rgba(248,113,113,0.35); }
+.toast.info    { border-color: rgba(0,201,177,0.35); }
+@keyframes toast-in {
+  from { opacity: 0; transform: translateX(20px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.toast-icon { font-size: 1rem; flex-shrink: 0; margin-top: 1px; }
+.toast-msg { color: var(--text); line-height: 1.5; }
+.toast-sub { font-size: 0.72rem; color: var(--muted); font-family: var(--mono); margin-top: 3px; }
+
+/* Scrollbar for table */
+.table-wrap::-webkit-scrollbar { width: 4px; }
+.table-wrap::-webkit-scrollbar-track { background: transparent; }
+.table-wrap::-webkit-scrollbar-thumb { background: var(--slate-hi); border-radius: 2px; }
+
+/* Responsive */
+@media(max-width:800px){
+  .app-shell { grid-template-columns: 1fr; }
+  .left-panel { border-right: none; border-bottom: 1px solid var(--border); }
+  .table-wrap { overflow-x: auto; }
+}
+
+/* Config banner */
+.config-banner {
+  background: rgba(245,158,11,0.08); border-bottom: 1px solid rgba(245,158,11,0.2);
+  padding: 10px 28px; font-size: 0.78rem; color: var(--amber);
+  display: flex; align-items: center; gap: 10px;
+}
+.config-banner a { color: var(--teal); }
+.config-banner code {
+  font-family: var(--mono); font-size: 0.72rem;
+  background: rgba(0,0,0,0.3); padding: 1px 6px; border-radius: 3px;
+}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<header class="topbar">
+  <a class="topbar-logo" href="voxledger.html">
+    <span class="logo-dot"></span>
+    VoxLedger
+  </a>
+  <div class="topbar-right">
+    <div class="status-pill" id="agentStatus">
+      <span class="status-dot"></span>
+      <span id="agentStatusText">Agent Idle</span>
+    </div>
+    <span class="network-tag">DEVNET</span>
+  </div>
+</header>
+
+<!-- CONFIG BANNER — hidden once API URL is set -->
+<div class="config-banner" id="configBanner">
+  ⚠️ Configure your backend URL in the script below: <code>API_BASE</code> and <code>ELEVENLABS_AGENT_ID</code> — or use the manual form to add expenses.
+</div>
+
+<!-- APP SHELL -->
+<div class="app-shell">
+
+  <!-- LEFT PANEL -->
+  <aside class="left-panel">
+
+    <!-- Voice Widget -->
+    <div class="voice-section">
+      <div class="voice-label">Voice Input</div>
+      <div class="mic-ring-wrap">
+        <div class="mic-ring" id="ring1"></div>
+        <div class="mic-ring" id="ring2"></div>
+        <div class="mic-ring" id="ring3"></div>
+        <button class="mic-btn" id="micBtn" title="Click to speak">🎤</button>
+      </div>
+      <div class="voice-status" id="voiceStatus">Press to speak</div>
+      <div class="transcript-box" id="transcriptBox">Your speech will appear here…</div>
+    </div>
+
+    <!-- Manual Entry -->
+    <div class="manual-section">
+      <div class="manual-label">
+        Manual Entry
+        <span>fallback / testing</span>
+      </div>
+      <div class="form-row">
+        <input class="form-input" id="fAmount" type="number" placeholder="Amount" min="1"/>
+        <input class="form-input" id="fCurrency" type="text" placeholder="NGN" maxlength="5" style="max-width:72px"/>
+      </div>
+      <div class="form-row">
+        <select class="form-select" id="fCategory">
+          <option value="">Category</option>
+          <option>Marketing</option>
+          <option>Transport</option>
+          <option>Food</option>
+          <option>Software</option>
+          <option>Hardware</option>
+          <option>Other</option>
+        </select>
+        <input class="form-input" id="fDate" type="date"/>
+      </div>
+      <input class="form-input" id="fDesc" type="text" placeholder="Description" style="width:100%;margin-bottom:8px"/>
+      <button class="form-submit" id="manualSubmit" onclick="handleManualSubmit()">Log Expense</button>
+    </div>
+
+    <!-- Summary -->
+    <div class="summary-section">
+      <div class="summary-label">Summary</div>
+      <div class="summary-cards">
+        <div class="summary-card">
+          <div class="summary-card-key">Total Spent</div>
+          <div class="summary-card-val teal" id="totalSpent">₦0</div>
+          <div class="summary-card-sub" id="totalCount">0 transactions</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-card-key">Today</div>
+          <div class="summary-card-val amber" id="todaySpent">₦0</div>
+          <div class="summary-card-sub" id="todayCount">0 today</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-card-key">Top Category</div>
+          <div class="summary-card-val" id="topCategory" style="font-size:1.1rem">—</div>
+        </div>
+      </div>
+      <div class="cat-bars" id="catBars"></div>
+    </div>
+  </aside>
+
+  <!-- RIGHT PANEL -->
+  <main class="right-panel">
+    <div class="table-header">
+      <div>
+        <div class="table-title">Expense Ledger</div>
+        <div class="table-meta" id="lastRefresh">Polling every 5s</div>
+      </div>
+      <div class="table-actions">
+        <select class="filter-select" id="catFilter" onchange="renderTable()">
+          <option value="">All Categories</option>
+          <option>Marketing</option>
+          <option>Transport</option>
+          <option>Food</option>
+          <option>Software</option>
+          <option>Hardware</option>
+          <option>Other</option>
+        </select>
+        <button class="clear-btn" onclick="clearAll()">Clear Demo Data</button>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Category</th>
+            <th>Description</th>
+            <th>Amount</th>
+            <th style="text-align:right">Chain Proof</th>
+          </tr>
+        </thead>
+        <tbody id="expenseBody"></tbody>
+      </table>
+      <div class="empty-state" id="emptyState" style="display:none">
+        <div class="empty-icon">🎤</div>
+        <div class="empty-text">No expenses yet.<br>Press the mic button or use the manual form.</div>
+        <div class="empty-hint">Expenses will appear here in real time.</div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- TOAST CONTAINER -->
+<div class="toast-wrap" id="toastWrap"></div>
+
+<script>
+/* ══════════════════════════════════════════════════
+   CONFIG — update these before deploying
+   ══════════════════════════════════════════════════ */
+const API_BASE           = '';          // e.g. 'https://your-app.vercel.app'
+const ELEVENLABS_AGENT_ID = '';         // from ElevenLabs dashboard
+const POLL_INTERVAL_MS   = 5000;
+
+/* ══════════════════════════════════════════════════
+   STATE
+   ══════════════════════════════════════════════════ */
+let expenses     = [];
+let elSession    = null;
+let isListening  = false;
+let pollTimer    = null;
+
+/* ══════════════════════════════════════════════════
+   DEMO SEED DATA  (removed once real API responds)
+   ══════════════════════════════════════════════════ */
+const DEMO_DATA = [
+  { id:'d1', amount:2000, currency:'NGN', category:'Marketing',  description:'Flyers for startup',          date:'2026-05-08', tx_hash:'5xKfAbQ2mR9wZpL3nE7sYtUoP1qXcVbNmJhKdFgS', created_at:'2026-05-08T09:14:00Z' },
+  { id:'d2', amount:1500, currency:'NGN', category:'Transport',   description:'Uber to pitch meeting',       date:'2026-05-08', tx_hash:'3nMpRyT6aZvQwXcL8bJkDeF2hUoNsGiVtPmKqS7', created_at:'2026-05-08T11:32:00Z' },
+  { id:'d3', amount:4500, currency:'NGN', category:'Software',    description:'Figma subscription',          date:'2026-05-07', tx_hash:'7qWxZaS3eRvMnT5yUoP9bLkFcJhGdViK2mQpNs', created_at:'2026-05-07T14:05:00Z' },
+  { id:'d4', amount:800,  currency:'NGN', category:'Food',        description:'Team lunch at co-working',    date:'2026-05-07', tx_hash:'2bJkDeF8hUoNsGiVtPmKqS7nMpRyT6aZvQwXcL', created_at:'2026-05-07T13:20:00Z' },
+  { id:'d5', amount:12000,currency:'NGN', category:'Hardware',    description:'External SSD for backups',    date:'2026-05-06', tx_hash:'9sGiVtPmKqS72bJkDeF8hUoNnMpRyT6aZvQwXcL', created_at:'2026-05-06T16:48:00Z' },
+];
+
+/* ══════════════════════════════════════════════════
+   INIT
+   ══════════════════════════════════════════════════ */
+window.addEventListener('DOMContentLoaded', () => {
+  // Set today's date in date input
+  document.getElementById('fDate').value = today();
+  // Hide config banner if API is configured
+  if (API_BASE) document.getElementById('configBanner').style.display = 'none';
+  // Load data
+  if (API_BASE) {
+    fetchExpenses();
+    pollTimer = setInterval(fetchExpenses, POLL_INTERVAL_MS);
+  } else {
+    expenses = [...DEMO_DATA];
+    renderAll();
+  }
+  // Mic button
+  document.getElementById('micBtn').addEventListener('click', toggleVoice);
+});
+
+/* ══════════════════════════════════════════════════
+   API CALLS
+   ══════════════════════════════════════════════════ */
+async function fetchExpenses() {
+  try {
+    const res = await fetch(`${API_BASE}/api/expenses`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    expenses = data.expenses || [];
+    renderAll();
+    document.getElementById('lastRefresh').textContent =
+      'Last updated: ' + new Date().toLocaleTimeString();
+  } catch(e) {
+    console.warn('Fetch failed:', e.message);
+  }
+}
+
+async function postExpense(payload) {
+  if (!API_BASE) {
+    // Demo mode — fake it locally
+    const fake = {
+      id: 'local-' + Date.now(),
+      ...payload,
+      tx_hash: randomHash(),
+      created_at: new Date().toISOString(),
+    };
+    expenses.unshift(fake);
+    renderAll();
+    toast('success', '✓ Expense logged', `${payload.amount} ${payload.currency} · ${payload.category}`);
+    return fake;
+  }
+  const res = await fetch(`${API_BASE}/api/expenses`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(JSON.stringify(err));
+  }
+  const data = await res.json();
+  await fetchExpenses();
+  toast('success', '✓ Expense logged', data.message);
+  return data;
+}
+
+/* ══════════════════════════════════════════════════
+   VOICE
+   ══════════════════════════════════════════════════ */
+async function toggleVoice() {
+  if (isListening) {
+    stopVoice();
+  } else {
+    await startVoice();
+  }
+}
+
+async function startVoice() {
+  if (!ELEVENLABS_AGENT_ID) {
+    toast('info', '⚡ Demo mode', 'Set ELEVENLABS_AGENT_ID to enable voice. Using manual form instead.');
+    return;
+  }
+  try {
+    await navigator.mediaDevices.getUserMedia({ audio: true });
+    setVoiceState('listening');
+    toast('info', '🎤 Listening…', 'Speak your expense');
+    // ElevenLabs SDK would be initialized here
+    // const { useConversation } = await import('@11labs/react');
+    // For this standalone file, we show the state visually
+    updateTranscript('Listening…');
+  } catch(e) {
+    setVoiceState('idle');
+    toast('error', '🎤 Mic error', e.message);
+  }
+}
+
+function stopVoice() {
+  setVoiceState('idle');
+  updateTranscript('Your speech will appear here…');
+  if (elSession) { try { elSession.endSession(); } catch(_){} elSession = null; }
+}
+
+function setVoiceState(state) {
+  const btn = document.getElementById('micBtn');
+  const statusEl = document.getElementById('voiceStatus');
+  const agentPill = document.getElementById('agentStatus');
+  const agentText = document.getElementById('agentStatusText');
+  const rings = [document.getElementById('ring1'),document.getElementById('ring2'),document.getElementById('ring3')];
+
+  isListening = state === 'listening';
+
+  btn.className = 'mic-btn' + (state !== 'idle' ? ' ' + state : '');
+  btn.textContent = state === 'listening' ? '⏹' : state === 'processing' ? '⏳' : '🎤';
+
+  statusEl.className = 'voice-status ' + state;
+  statusEl.textContent = {
+    idle: 'Press to speak',
+    listening: 'Listening…',
+    processing: 'Processing…',
+    success: 'Logged!',
+    error: 'Error — try again',
+  }[state] || '';
+
+  rings.forEach(r => r.className = 'mic-ring' + (state === 'listening' ? ' listening' : ''));
+
+  agentPill.className = 'status-pill' + (state !== 'idle' ? ' active' : '');
+  agentText.textContent = {
+    idle: 'Agent Idle',
+    listening: 'Listening',
+    processing: 'Processing',
+    success: 'Logged',
+    error: 'Error',
+  }[state] || 'Idle';
+}
+
+function updateTranscript(text) {
+  const box = document.getElementById('transcriptBox');
+  box.textContent = text;
+  box.className = 'transcript-box' + (text && text !== 'Your speech will appear here…' ? ' active' : '');
+}
+
+/* ══════════════════════════════════════════════════
+   MANUAL FORM
+   ══════════════════════════════════════════════════ */
+async function handleManualSubmit() {
+  const amount   = parseFloat(document.getElementById('fAmount').value);
+  const currency = document.getElementById('fCurrency').value.trim().toUpperCase() || 'NGN';
+  const category = document.getElementById('fCategory').value;
+  const date     = document.getElementById('fDate').value;
+  const desc     = document.getElementById('fDesc').value.trim();
+
+  if (!amount || amount <= 0) { toast('error', 'Invalid amount', 'Enter a positive number'); return; }
+  if (!category)              { toast('error', 'No category',    'Select a category'); return; }
+  if (!date)                  { toast('error', 'No date',        'Pick a date'); return; }
+  if (!desc)                  { toast('error', 'No description', 'Write a short description'); return; }
+
+  const btn = document.getElementById('manualSubmit');
+  btn.disabled = true; btn.textContent = 'Logging…';
+
+  try {
+    await postExpense({ amount, currency, category, description: desc, date });
+    // Reset form
+    document.getElementById('fAmount').value = '';
+    document.getElementById('fDesc').value   = '';
+    document.getElementById('fCategory').value = '';
+    document.getElementById('fDate').value   = today();
+    document.getElementById('fCurrency').value = '';
+  } catch(e) {
+    toast('error', '✗ Log failed', e.message.slice(0,120));
+  } finally {
+    btn.disabled = false; btn.textContent = 'Log Expense';
+  }
+}
+
+/* ══════════════════════════════════════════════════
+   RENDER
+   ══════════════════════════════════════════════════ */
+function renderAll() {
+  renderSummary();
+  renderTable();
+}
+
+function renderSummary() {
+  const total     = expenses.reduce((s,e) => s + Number(e.amount), 0);
+  const todayStr  = today();
+  const todayExps = expenses.filter(e => e.date === todayStr);
+  const todayAmt  = todayExps.reduce((s,e) => s + Number(e.amount), 0);
+
+  // Category totals
+  const catTotals = {};
+  expenses.forEach(e => {
+    catTotals[e.category] = (catTotals[e.category] || 0) + Number(e.amount);
+  });
+  const sorted = Object.entries(catTotals).sort((a,b) => b[1]-a[1]);
+  const top    = sorted[0]?.[0] || '—';
+  const maxAmt = sorted[0]?.[1] || 1;
+
+  document.getElementById('totalSpent').textContent = fmt(total);
+  document.getElementById('totalCount').textContent = `${expenses.length} transaction${expenses.length!==1?'s':''}`;
+  document.getElementById('todaySpent').textContent = fmt(todayAmt);
+  document.getElementById('todayCount').textContent = `${todayExps.length} today`;
+  document.getElementById('topCategory').textContent = top;
+
+  // Category bars
+  const bars = document.getElementById('catBars');
+  bars.innerHTML = sorted.slice(0,5).map(([cat,amt]) => `
+    <div class="cat-bar-row">
+      <div class="cat-bar-meta">
+        <span class="cat-bar-name">${cat}</span>
+        <span class="cat-bar-amt">${fmt(amt)}</span>
+      </div>
+      <div class="cat-bar-track">
+        <div class="cat-bar-fill" style="width:${Math.round(amt/maxAmt*100)}%"></div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderTable() {
+  const filter   = document.getElementById('catFilter').value;
+  const filtered = filter ? expenses.filter(e => e.category === filter) : expenses;
+  const tbody    = document.getElementById('expenseBody');
+  const empty    = document.getElementById('emptyState');
+
+  if (filtered.length === 0) {
+    tbody.innerHTML = '';
+    empty.style.display = 'flex';
+    return;
+  }
+  empty.style.display = 'none';
+
+  tbody.innerHTML = filtered.map((e, i) => `
+    <tr style="animation-delay:${Math.min(i*30,300)}ms">
+      <td class="td-date">${fmtDate(e.date)}</td>
+      <td><span class="cat-badge cat-${e.category.toLowerCase()}">${e.category}</span></td>
+      <td class="td-desc" title="${e.description}">${e.description}</td>
+      <td class="td-amount">${e.currency || 'NGN'} ${Number(e.amount).toLocaleString()}</td>
+      <td class="td-proof">
+        <a href="https://explorer.solana.com/tx/${e.tx_hash}?cluster=devnet" target="_blank" rel="noopener">
+          ${e.tx_hash.slice(0,8)}… ↗
+        </a>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function clearAll() {
+  if (!confirm('Clear all demo data? This only clears local display — your backend data is unaffected.')) return;
+  expenses = [];
+  renderAll();
+}
+
+/* ══════════════════════════════════════════════════
+   TOAST
+   ══════════════════════════════════════════════════ */
+function toast(type, title, sub='', duration=4000) {
+  const wrap = document.getElementById('toastWrap');
+  const el   = document.createElement('div');
+  el.className = `toast ${type}`;
+  const icon = { success:'✓', error:'✗', info:'⚡' }[type] || 'ℹ';
+  el.innerHTML = `
+    <span class="toast-icon">${icon}</span>
+    <div>
+      <div class="toast-msg">${title}</div>
+      ${sub ? `<div class="toast-sub">${sub}</div>` : ''}
+    </div>
+  `;
+  wrap.appendChild(el);
+  setTimeout(() => {
+    el.style.opacity = '0'; el.style.transform = 'translateX(20px)';
+    el.style.transition = 'opacity .3s, transform .3s';
+    setTimeout(() => el.remove(), 350);
+  }, duration);
+}
+
+/* ══════════════════════════════════════════════════
+   UTILS
+   ══════════════════════════════════════════════════ */
+function today() {
+  return new Date().toISOString().split('T')[0];
+}
+function fmt(n) {
+  return '₦' + Number(n).toLocaleString();
+}
+function fmtDate(d) {
+  if (!d) return '—';
+  const dt = new Date(d + 'T00:00:00');
+  return dt.toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' });
+}
+function randomHash() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz123456789';
+  return Array.from({length:44}, () => chars[Math.floor(Math.random()*chars.length)]).join('');
+}
+</script>
+</body>
+</html>
